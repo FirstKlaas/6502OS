@@ -42,6 +42,8 @@ lcd_return_home:
 lcd_print_char:
   jsr lcd_data
   
+
+  
 lcd_busy_wait:
   lda #01111111
   sta LCD_DATA_DDR

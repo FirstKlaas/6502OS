@@ -75,6 +75,8 @@ lcdtest:
   jsr lcd_clear_display
   jsr lcd_return_home
   
+  lda #"*"
+  jsr lcd_print_char
   ldx #0
 next_char:
   lda $9000,x
@@ -108,6 +110,7 @@ reset:
 ; ****************************************************************************
   .include spi.inc
   .include lcd_hd44780u_8bit.inc
+  .include numbers.inc
 
   .org $9000
   .string "   FirstKlaas"

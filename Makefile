@@ -5,3 +5,6 @@ vasm:
 
 hex:
 	hexdump -C bios.bin
+
+flash: vasm
+	minipro -p AT28C256 -w bios.bin

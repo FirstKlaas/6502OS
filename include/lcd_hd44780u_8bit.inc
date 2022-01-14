@@ -38,14 +38,9 @@ lcd_return_home:
   lda #%00000010    ; Return cursor to home. Content not changed.
   jsr lcd_cmd       ; send the command
   rts               ; return
-
-lcd_print_char:
-  jsr lcd_data
-  
-
   
 lcd_busy_wait:
-  lda #01111111
+  lda #%01111111
   sta LCD_DATA_DDR
 lbw_0:  
   lda #LCD_RW
@@ -58,7 +53,7 @@ lbw_0:
   sta LCD_CMD_PORT
   lda #$ff
   sta LCD_DATA_DDR
-  jsr
+  rts
 
 lcd_cmd:
   sta PORTA
@@ -70,6 +65,7 @@ lcd_cmd:
   sta PORTB
   rts
 
+lcd_print_char:
 lcd_data:                ; 28
   sta PORTA              ; 4
   lda #LCD_RS            ; 2

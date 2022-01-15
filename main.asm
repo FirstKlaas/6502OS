@@ -15,6 +15,30 @@ ACR          .equ $600B ; Auxiliary Control Register
 
 TEMP0        .equ $0200 ; Address for temporary variables used by the routines
 
+  .macro ZPUSHA
+  dex
+  sta 0,x
+  .endm  
+
+  .macro ZPOPA
+  lda 0,x
+  inx
+  .endm
+
+  .macro ZPUSHD
+  dex
+  lda #\1
+  sta 0,x
+  .endm
+
+  .macro ZPUSHN
+  dex
+  .endm
+
+  .macro ZPOPN
+  inx
+  .endm
+
 ; ****************************************************************************
 ; Memory Layout
 ; ****************************************************************************
@@ -41,10 +65,7 @@ TEMP0        .equ $0200 ; Address for temporary variables used by the routines
 ;   jsr $8003 ; read write byte via spi
 
   .org $8000
-  jmp spi_init_shift_register ; $8000
-  jmp spi_rw_byte             ; $8003
-  jmp spi_r_byte              ; $8006
-
+  
 ; ****************************************************************************
 ; NMI Routine
 ; ****************************************************************************
@@ -59,65 +80,95 @@ nmi_routine:
 irq_brk_routine:
   jmp irq_brk_routine
 
+test_ram:
+  lda #$11
+  lda #$22
+  rts
+
 viatest:
-  lda #$FF
-  sta DDRA
-  sta PORTA
+  lda #$ff
   sta DDRB
+  sta DDRA
   lda #%10101010
   sta PORTB
-  
-vt:
-  jmp vt
+  sta PORTA
+  rts
 
 lcdtest:
+  phy
   jsr lcd_init_mcu
   jsr lcd_clear_display
   jsr lcd_return_home
-  
-  lda #"*"
+
+  ; BCD Test
+  lda #84             ; Load vaklue 127 into accu
+  ZPUSHA
+  jsr bin2bcd8         ; convert bin to bcd
+  ZPOPA
+  sta BCD+0
+  ZPOPA
+  sta BCD+1
+  jsr lcd_print_bcd8   ; print bcd on lcd at current position
+
+  lda #"/"
   jsr lcd_print_char
+  
+  ; HEX Test
+  ZPUSHD $EA
+  jsr bin2hex
+  ZPOPA
+  jsr lcd_print_char
+  ZPOPA
+  jsr lcd_print_char
+  
+  ; Print zero terminated string from memory  
+  phx
   ldx #0
 next_char:
   lda $9000,x
   beq string_end
-  jsr lcd_data
+  jsr lcd_print_char
   inx
   jmp next_char
+
 string_end:
-  jmp string_end  
+  plx
+  ply
+  rts  
 
 
 ; ----------------------------------------------------------------------------
-; First routine, that doesn't make any sense, but in the beginning, we have
-; only ROM, so we cannot use the stack, subroutines or the VIA chip.
-; The first loop should run 10 times. The second loop endless.
+; Boot sequence of the FirstKlaas OS
 ; ----------------------------------------------------------------------------
-reset:
-  ldx #$FF
-  txs
-  lda #$42
-  sta $2000
-  lda $2000
-  lda #$11
-  lda #$22
-  lda #$33
+boot:
+  ldx #$FF        ; We use the x register as the stack pointer for the zeropage
+                  ; stack. So all routines need to take care not to change x
+  txs             ; Also set the stack pointer to FF
+
+  jsr lcdtest
+  lda #$AA
+  lda #$BB
+  lda #$CC
+  
+
   brk             ; We are finished. Now the processor should ftech the break
                   ; vector and jump to the routine.
 
 ; ****************************************************************************
 ; Include the necessary libraries
 ; ****************************************************************************
-  .include spi.inc
+  ;.include spi.inc
   .include lcd_hd44780u_8bit.inc
   .include numbers.inc
 
   .org $9000
-  .string "   FirstKlaas"
+
+
+  .string " <-- BCD"
 ; ****************************************************************************
 ; The three vectors
 ; ****************************************************************************
   .org $FFFA
   .word nmi_routine
-  .word lcdtest
+  .word boot
   .word irq_brk_routine

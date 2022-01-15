@@ -65,6 +65,26 @@ lcd_cmd:
   sta PORTB
   rts
 
+lcd_print_bcd8:
+  lda BCD+1 
+  and #%00001111
+  ora #%00110000
+  jsr lcd_print_char
+  lda BCD
+  ror
+  ror
+  ror
+  ror
+  and #%00001111
+  ora #%00110000
+  jsr lcd_print_char
+  lda BCD
+  and #%00001111
+  ora #%00110000
+  jsr lcd_print_char
+  rts 
+  
+  
 lcd_print_char:
 lcd_data:                ; 28
   sta PORTA              ; 4

@@ -22,6 +22,7 @@ LCD_E        .equ %00000001
 LCD_OUTPUT   .equ %11110111 ; Pins needed to be set as output pins
 LCD_PORT     .equ PORTA
 LCD_DDR      .equ DDRA
+LCD_CMASK    .equ %00000111
 
 lcd_init_mcu:
   lda #LCD_OUTPUT   ; Set output pins
@@ -34,14 +35,14 @@ lcd_init_mcu:
   lda #%10000000    ; 2 lines / 5 x 8 font
   jsr lcd_cmd       ; send the command to the MCU
 
-  lda #%00000000    ; Display on / Increment position / No shifting
+  lda #%00000000    ; Display on / Cursor on / Blinking off
   jsr lcd_cmd
-  lda #%11100000    ; Display on / Increment position / No shifting
+  lda #%11100000    ; 
   jsr lcd_cmd
 
   lda #%00000000    ; Entry Mode Set
   jsr lcd_cmd
-  lda #%01100000    ; Inc address / Shift Cursor / Don't shift display
+  lda #%01100000    ; Inc address / Don't shift display
   jsr lcd_cmd
 
   rts               ; return
@@ -65,7 +66,7 @@ lcd_print_char:
 lcd_clear_display:  ; 8-Bit instraction: 0000 0010
   lda #%00000000    ; clear display command. No parameters
   jsr lcd_cmd       ; send the command
-  lda #%00100000    ; clear display command. No parameters
+  lda #%00010000    ; clear display command. No parameters
   jsr lcd_cmd       ; send the command
   rts               ; return
 
@@ -83,3 +84,22 @@ lcd_cmd:            ; 22 cycles
   and #(~LCD_E)     ; Clear the E Bit                (2)
   sta LCD_PORT      ; Write command                  (4)
   rts               ;                                (6)
+
+lcd_print_bcd8:
+  lda 1,x 
+  and #%00001111
+  ora #%00110000
+  jsr lcd_print_char
+  lda 0,x
+  ror
+  ror
+  ror
+  ror
+  and #%00001111
+  ora #%00110000
+  jsr lcd_print_char
+  lda 0,x
+  and #%00001111
+  ora #%00110000
+  jsr lcd_print_char
+  rts 

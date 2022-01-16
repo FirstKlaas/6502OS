@@ -104,10 +104,6 @@ lcdtest:
   lda #84             ; Load vaklue 127 into accu
   ZPUSHA
   jsr bin2bcd8         ; convert bin to bcd
-  ZPOPA
-  sta BCD+0
-  ZPOPA
-  sta BCD+1
   jsr lcd_print_bcd8   ; print bcd on lcd at current position
 
   lda #"/"
@@ -158,7 +154,7 @@ boot:
 ; Include the necessary libraries
 ; ****************************************************************************
   ;.include spi.inc
-  .include lcd_hd44780u_8bit.inc
+  .include lcd_hd44780u_4bit.inc
   .include numbers.inc
 
   .org $9000

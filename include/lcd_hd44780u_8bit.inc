@@ -40,7 +40,7 @@ lcd_return_home:
   rts               ; return
   
 lcd_busy_wait:
-  lda #%01111111
+  lda #%00000000
   sta LCD_DATA_DDR
 lbw_0:  
   lda #LCD_RW

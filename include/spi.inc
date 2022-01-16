@@ -41,12 +41,25 @@ SPI_SH_CFG   .equ %00001100 ; Configuration for "Shift In under control of exter
 ; SPI send and receive a byte via the shift register 
 ; ----------------------------------------------------------------------------
 
+spi_deactivate_cs_pins:
+  lda #%01111110   ; Disable all CS Pins
+  sta PORTB
+  rts
+
+spi_init:
+  lda #$0F         ; All pins are out pins
+  sta DDRB
+  lda #%01111110   ; Disable all CS Pins. Also set clock and data to low
+  sta PORTB
+  jsr spi_init_shift_register
+  rts 
+
 ; We use an external clock for the shift register. To set this mode,
 ; the bits 2 to 4 of the ACR have to be set to 1.  
 spi_init_shift_register:
   lda ACR          ; Load current value from the ACR
   and #SPI_SH_MASK ; Clear out shift register bits
-  ora #SPI_SH_CFG  ; Shift in and shift out under control of external clock
+  ora #SPI_SH_CFG  ; Shift in under control of external clock
   sta ACR          ; Store the new ACR value
   rts
 
@@ -68,21 +81,22 @@ spi_rw_byte:
   tay             ; Wert in Y register sichern
 
 spi_rw_byte_0:
-  rol TEMP0       ; rotate the value to the left. The highest bit is in the carry flag
   tya             ; Portvalue back to accu
+  rol TEMP0       ; rotate the value to the left. The highest bit is in the carry flag
   ror             ; shifting to the right. The carry bit is now the highest bit in the accu
   sta PORTB       ; Write back to port B.  Because bit 0 is 0, set clock low
   inc PORTB       ; Clock high, because the clock is connected to bit 0
   sta PORTB       ; Set clock low again. TODO: Do we need the really? In the loop the clock is set to low twice.
   dex             ; Decrement counter
   bne spi_rw_byte_0 ; next loop iteration
+
   lda SHIFTREG    ; Read the received value from the shift register
   ply             ; Restore the y register
   plx             ; Resore the x register
   rts             ; Return from subroutine
 
 ; ----------------------------------------------------------------------------
-; SPI fast send a byte via the shift register 
+; SPI fast read byte via the shift register 
 ; ----------------------------------------------------------------------------
 ; Of course we could clock through a loop and the codesize would be smaller.
 ; But also slower. As a trade off decision we prefer speed over size.
@@ -91,7 +105,7 @@ spi_rw_byte_0:
 ;
 ; 2022-10-01
 ;   
-spi_r_byte:
+spi_read_byte:
   phy             ; Save y register to stack
   lda PORTB       ; Load current value from port B
   and #%01111110  ; clear data and clock bit

@@ -39,6 +39,11 @@ TEMP0        .equ $0200 ; Address for temporary variables used by the routines
   inx
   .endm
 
+  .macro MAXWRITE
+  lda \(1)
+  jsr max_send_byte
+  .endm
+
 ; ****************************************************************************
 ; Memory Layout
 ; ****************************************************************************
@@ -80,6 +85,37 @@ nmi_routine:
 irq_brk_routine:
   jmp irq_brk_routine
 
+
+uno_spi_test:
+  
+  lda #%00000000        ; Activate CS for UNO on PB01
+  sta PORTB
+  lda #%10101010        ; Testbyte to write
+  jsr spi_rw_byte
+  lda #%01111110        ; Disable all CS Pins
+  sta PORTB
+  lda #%00000000        ; Activate CS for UNO on PB01
+  sta PORTB
+  lda #%11110000        ; Testbyte to write
+  jsr spi_rw_byte
+  lda #%01111110        ; Disable all CS Pins
+  sta PORTB
+
+  jsr lcd_clear_display
+  lda #"S"
+  jsr lcd_print_char
+  lda #":"
+  jsr lcd_print_char
+  ;ZPUSHA
+  ;jsr bin2hex
+  ;ZPOPA
+  lda #"H"
+  jsr lcd_print_char
+  ;ZPOPA
+  lda #"L"
+  jsr lcd_print_char  
+  rts
+
 test_ram:
   lda #$11
   lda #$22
@@ -88,17 +124,16 @@ test_ram:
 viatest:
   lda #$ff
   sta DDRB
-  sta DDRA
+
   lda #%10101010
   sta PORTB
-  sta PORTA
+.loop:
+  jmp .loop
   rts
+
 
 lcdtest:
   phy
-  jsr lcd_init_mcu
-  jsr lcd_clear_display
-  jsr lcd_return_home
 
   ; BCD Test
   lda #84             ; Load vaklue 127 into accu
@@ -141,7 +176,16 @@ boot:
                   ; stack. So all routines need to take care not to change x
   txs             ; Also set the stack pointer to FF
 
+  jsr viatest
+
+  jsr lcd_init_mcu
+  jsr lcd_clear_display
+  jsr lcd_return_home
+  ;jsr spi_init
+
   jsr lcdtest
+  ;jsr uno_spi_test
+  ;jsr viatest
   lda #$AA
   lda #$BB
   lda #$CC
@@ -153,9 +197,10 @@ boot:
 ; ****************************************************************************
 ; Include the necessary libraries
 ; ****************************************************************************
-  ;.include spi.inc
+  .include spi.inc
   .include lcd_hd44780u_4bit.inc
   .include numbers.inc
+
 
   .org $9000
 
